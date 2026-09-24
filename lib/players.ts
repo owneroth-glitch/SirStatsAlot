@@ -10,7 +10,7 @@ import type {
 import { emptyLine, addLine, scoreLine, round1, round2 } from "./scoring"
 import { computeRatings } from "./rating"
 
-export const CURRENT_YEAR = 2025
+export const CURRENT_YEAR = 2026
 
 export const TEAMS: { abbr: string; name: string; bye: number }[] = [
   { abbr: "ARI", name: "Arizona Cardinals", bye: 11 },
@@ -321,7 +321,6 @@ function buildPlayer(seed: Seed): Player {
     const scale = 0.78 + rng() * 0.3
     history.push(buildSeason(seed, CURRENT_YEAR - k, seed.team, rng, scale))
   }
-  const projections = buildProjections(season, rng)
   const advanced = buildAdvanced(seed.pos, season.totals, season.gp, rng)
 
   return {
@@ -338,7 +337,7 @@ function buildPlayer(seed: Seed): Player {
     byeWeek: byeFor(seed.team),
     season,
     history,
-    projections,
+    projections: { yahoo: { standard: 0, half: 0, ppr: 0 }, espn: { standard: 0, half: 0, ppr: 0 }, sleeper: { standard: 0, half: 0, ppr: 0 }, average: { standard: 0, half: 0, ppr: 0 } },
     advanced,
     ratings: {
       overall: 0,

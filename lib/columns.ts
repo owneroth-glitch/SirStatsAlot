@@ -27,20 +27,13 @@ export function seasonPoints(p: Player, fmt: ScoringFormat): number {
 export function pointsPerGame(p: Player, fmt: ScoringFormat): number {
   return p.season.gp ? round1(seasonPoints(p, fmt) / p.season.gp) : 0
 }
-export function projFor(p: Player, fmt: ScoringFormat): number {
-  return p.projections.average[fmt]
-}
-
 const dash = (v: number, s: string, ok: boolean) => (ok ? s : "—")
 
 export const COLUMNS: StatColumn[] = [
   // Fantasy
-  { key: "proj", label: "PROJ", tip: "Projected season points (avg of Yahoo/ESPN/Sleeper)", group: "fantasy", value: projFor, display: (p, f) => num(projFor(p, f), 1) },
   { key: "pts", label: "PTS", tip: "Actual fantasy points this season", group: "fantasy", value: seasonPoints, display: (p, f) => num(seasonPoints(p, f), 1) },
   { key: "ppg", label: "PPG", tip: "Fantasy points per game", group: "fantasy", value: pointsPerGame, display: (p, f) => num(pointsPerGame(p, f), 1) },
-  { key: "yahoo", label: "YAH", tip: "Yahoo projection", group: "fantasy", value: (p, f) => p.projections.yahoo[f], display: (p, f) => num(p.projections.yahoo[f], 1) },
-  { key: "espn", label: "ESPN", tip: "ESPN projection", group: "fantasy", value: (p, f) => p.projections.espn[f], display: (p, f) => num(p.projections.espn[f], 1) },
-  { key: "sleeper", label: "SLP", tip: "Sleeper projection", group: "fantasy", value: (p, f) => p.projections.sleeper[f], display: (p, f) => num(p.projections.sleeper[f], 1) },
+  { key: "games", label: "GP", tip: "Games played", group: "fantasy", value: (p) => p.season.gp, display: (p) => num(p.season.gp) },
   { key: "boom", label: "BOOM%", tip: "Share of games at 150%+ of average", group: "fantasy", value: (p) => p.ratings.boomRate, display: (p) => pct(p.ratings.boomRate) },
   { key: "bust", label: "BUST%", tip: "Share of games at 50% or less of average", group: "fantasy", value: (p) => p.ratings.bustRate, display: (p) => pct(p.ratings.bustRate) },
   { key: "cons", label: "CONS", tip: "Consistency score (0-100)", group: "fantasy", value: (p) => p.ratings.consistency, display: (p) => String(p.ratings.consistency) },

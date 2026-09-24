@@ -17,6 +17,7 @@ interface StatTableProps {
   onSelectPlayer: (id: string) => void
   compareIds: string[]
   onToggleCompare: (id: string) => void
+  perGame?: boolean
 }
 
 const IDENTITY_SORTS = new Set(["ovr", "val", "rank"])
@@ -31,6 +32,7 @@ export function StatTable({
   onSelectPlayer,
   compareIds,
   onToggleCompare,
+  perGame = false,
 }: StatTableProps) {
   return (
     <div className="overflow-auto rounded-lg border border-border bg-card">
@@ -103,7 +105,9 @@ export function StatTable({
                         isSorted ? "font-semibold text-foreground" : "text-foreground/80",
                       )}
                     >
-                      {c.display(p, format)}
+                      {perGame && !["ypc", "ypt", "yac", "epa", "cmp", "att", "tgt", "rec", "td", "int", "fum", "gp", "snap"].includes(c.key)
+                        ? formatPerGame(c.value(p, format), p.season.gp)
+                        : c.display(p, format)}
                     </td>
                   )
                 })}
@@ -130,6 +134,10 @@ export function StatTable({
       </table>
     </div>
   )
+}
+
+function formatPerGame(value: number, games: number) {
+  return (value / Math.max(1, games)).toFixed(1)
 }
 
 function SortableTh({

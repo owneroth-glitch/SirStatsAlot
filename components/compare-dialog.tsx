@@ -4,7 +4,7 @@ import type { Player, ScoringFormat } from "@/lib/types"
 import { Modal } from "./modal"
 import { PositionBadge } from "./position-badge"
 import { num } from "@/lib/format"
-import { seasonPoints, pointsPerGame, projFor } from "@/lib/columns"
+import { seasonPoints, pointsPerGame } from "@/lib/columns"
 import { cn } from "@/lib/utils"
 
 interface Row {
@@ -17,7 +17,6 @@ interface Row {
 const ROWS: Row[] = [
   { label: "Overall Rating", get: (p) => p.ratings.overall },
   { label: "Trade Value", get: (p) => p.ratings.tradeValue },
-  { label: "Proj Points", get: (p, f) => projFor(p, f), digits: 1 },
   { label: "Season Points", get: (p, f) => seasonPoints(p, f), digits: 1 },
   { label: "Points / Game", get: (p, f) => pointsPerGame(p, f), digits: 1 },
   { label: "Consistency", get: (p) => p.ratings.consistency },

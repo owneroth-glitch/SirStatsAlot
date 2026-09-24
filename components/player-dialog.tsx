@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import type { Player, ScoringFormat, SeasonStats } from "@/lib/types"
-import { SCORING_LABELS } from "@/lib/types"
 import { Modal } from "./modal"
 import { PositionBadge } from "./position-badge"
 import { TradeValueBar } from "./trade-value-bar"
@@ -100,7 +99,6 @@ function OverviewTab({ player, format }: { player: Player; format: ScoringFormat
     { label: "Experience", value: player.experience === 0 ? "Rookie" : `${player.experience} yrs` },
     { label: "Bye Week", value: String(player.byeWeek) },
   ]
-  const p = player.projections
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
@@ -112,28 +110,8 @@ function OverviewTab({ player, format }: { player: Player; format: ScoringFormat
         ))}
       </div>
 
-      <div>
-        <h3 className="mb-2 text-sm font-semibold text-foreground">
-          Projected Points — {SCORING_LABELS[format]}
-        </h3>
-        <div className="overflow-hidden rounded-lg border border-border">
-          <table className="w-full text-sm">
-            <thead className="bg-muted text-xs uppercase text-muted-foreground">
-              <tr>
-                <th className="px-3 py-2 text-left font-semibold">Source</th>
-                <th className="px-3 py-2 text-right font-semibold">Standard</th>
-                <th className="px-3 py-2 text-right font-semibold">Half PPR</th>
-                <th className="px-3 py-2 text-right font-semibold">PPR</th>
-              </tr>
-            </thead>
-            <tbody>
-              <ProjRow label="Yahoo" v={p.yahoo} />
-              <ProjRow label="ESPN" v={p.espn} />
-              <ProjRow label="Sleeper" v={p.sleeper} />
-              <ProjRow label="Average" v={p.average} highlight />
-            </tbody>
-          </table>
-        </div>
+      <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-4 text-sm text-muted-foreground">
+        Season totals are updated from the latest completed games. Use the Game Log and Advanced tabs for the full 2026 sample.
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -143,25 +121,6 @@ function OverviewTab({ player, format }: { player: Player; format: ScoringFormat
         <MetricCard label="Boom / Bust" value={`${player.ratings.boomRate}% / ${player.ratings.bustRate}%`} />
       </div>
     </div>
-  )
-}
-
-function ProjRow({
-  label,
-  v,
-  highlight,
-}: {
-  label: string
-  v: { standard: number; half: number; ppr: number }
-  highlight?: boolean
-}) {
-  return (
-    <tr className={cn("border-t border-border", highlight && "bg-emerald-500/10 font-semibold")}>
-      <td className="px-3 py-2 text-left">{label}</td>
-      <td className="px-3 py-2 text-right tabular-nums">{num(v.standard, 1)}</td>
-      <td className="px-3 py-2 text-right tabular-nums">{num(v.half, 1)}</td>
-      <td className="px-3 py-2 text-right tabular-nums">{num(v.ppr, 1)}</td>
-    </tr>
   )
 }
 
@@ -265,7 +224,7 @@ function CareerTab({ player, format }: { player: Player; format: ScoringFormat }
         </table>
       </div>
       <p className="text-xs text-muted-foreground">
-        Prior seasons shown with {SCORING_LABELS[format]} scoring. Open the Game Log tab for the current-season
+        Prior seasons shown with {format.toUpperCase()} scoring. Open the Game Log tab for the current-season
         week-by-week breakdown.
       </p>
     </div>

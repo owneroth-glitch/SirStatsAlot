@@ -5,7 +5,7 @@ import { GitCompareArrows, Scale, Search } from "lucide-react"
 import type { Player, Position, ScoringFormat } from "@/lib/types"
 import { SCORING_LABELS } from "@/lib/types"
 import { getPlayers, ALL_POSITIONS, ALL_TEAMS, TEAM_NAMES, CURRENT_YEAR } from "@/lib/players"
-import { COLUMNS, STAT_GROUPS, columnsFor, projFor, type StatGroup } from "@/lib/columns"
+import { COLUMNS, STAT_GROUPS, columnsFor, type StatGroup } from "@/lib/columns"
 import { MultiSelect } from "@/components/multi-select"
 import { StatTable } from "@/components/stat-table"
 import { PlayerDialog } from "@/components/player-dialog"
@@ -19,11 +19,12 @@ export default function Page() {
   const players = useMemo(() => getPlayers(), [])
 
   const [format, setFormat] = useState<ScoringFormat>("ppr")
+  const [perGame, setPerGame] = useState(false)
   const [positions, setPositions] = useState<string[]>([])
   const [teams, setTeams] = useState<string[]>([])
   const [search, setSearch] = useState("")
   const [group, setGroup] = useState<StatGroup>("fantasy")
-  const [sortKey, setSortKey] = useState("proj")
+  const [sortKey, setSortKey] = useState("pts")
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc")
   const [profileId, setProfileId] = useState<string | null>(null)
   const [compareIds, setCompareIds] = useState<string[]>([])
@@ -45,7 +46,7 @@ export default function Page() {
       if (sortKey === "ovr") return p.ratings.overall
       if (sortKey === "val") return p.ratings.tradeValue
       if (col) return col.value(p, format)
-      return projFor(p, format)
+      return p.ratings.overall
     }
     list = [...list].sort((a, b) => {
       const av = getVal(a)
@@ -81,8 +82,7 @@ export default function Page() {
               Gridiron<span className="text-emerald-600">Stats</span>
             </h1>
             <p className="text-sm text-muted-foreground">
-              {CURRENT_YEAR} fantasy football stat sheet · {players.length} players · projections averaged from Yahoo,
-              ESPN &amp; Sleeper
+              {CURRENT_YEAR} NFL roster &amp; practice squad stat sheet · {players.length} players · live game-by-game stats
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -149,8 +149,13 @@ export default function Page() {
             </button>
           )}
 
-          {/* Scoring toggle */}
           <div className="ml-auto flex items-center rounded-md border border-border bg-card p-0.5">
+            <button type="button" onClick={() => setPerGame(false)} className={cn("rounded px-3 py-1.5 text-sm font-medium", !perGame ? "bg-emerald-600 text-white" : "text-muted-foreground hover:text-foreground")}>Totals</button>
+            <button type="button" onClick={() => setPerGame(true)} className={cn("rounded px-3 py-1.5 text-sm font-medium", perGame ? "bg-emerald-600 text-white" : "text-muted-foreground hover:text-foreground")}>Per Game</button>
+          </div>
+
+          {/* Scoring toggle */}
+          <div className="flex items-center rounded-md border border-border bg-card p-0.5">
             {FORMATS.map((f) => (
               <button
                 key={f}
@@ -197,6 +202,7 @@ export default function Page() {
           onSelectPlayer={setProfileId}
           compareIds={compareIds}
           onToggleCompare={toggleCompare}
+          perGame={perGame}
         />
 
         <p className="mt-3 text-xs text-muted-foreground">

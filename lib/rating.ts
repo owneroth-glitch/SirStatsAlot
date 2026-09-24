@@ -4,11 +4,9 @@ import { round1 } from "./scoring"
 /**
  * Season-long trade value model.
  *
- * Combines projected production (PPR points per game, the strongest signal of
- * fantasy value), positional scarcity (a replacement-level baseline per
- * position), a dynasty-style age curve, and week-to-week consistency. The
- * result is normalized to a 1-100 scale that is comparable across positions so
- * it can be used to weigh trades.
+ * Combines actual production, positional scarcity, age, durability, and
+ * week-to-week consistency. The softer curve keeps the top 16 from separating
+ * too dramatically from useful depth players.
  */
 
 // Replacement level: points-per-game of a streamable starter at each position.
@@ -55,7 +53,7 @@ export function computeRatings(players: Player[]): Player[] {
 
   for (const pos of Object.keys(byPos)) {
     const group = byPos[pos]
-    group.sort((a, b) => b.projections.average.ppr - a.projections.average.ppr)
+    group.sort((a, b) => rawValue(b) - rawValue(a))
 
     const rawValues = group.map((p) => rawValue(p))
     const maxRaw = Math.max(...rawValues)
@@ -75,8 +73,8 @@ export function computeRatings(players: Player[]): Player[] {
         : 0
 
       const norm = maxRaw === minRaw ? 1 : (rawValues[i] - minRaw) / (maxRaw - minRaw)
-      const overall = Math.round(55 + norm * 44) // 55-99
-      const tradeValue = Math.round(4 + norm * 95) // 4-99
+      const overall = Math.round(58 + norm * 32) // 58-90, intentionally compressed
+      const tradeValue = Math.round(18 + norm * 62) // 18-80, intentionally compressed
 
       p.ratings = {
         overall,
@@ -96,7 +94,7 @@ export function computeRatings(players: Player[]): Player[] {
 
 function rawValue(p: Player): number {
   const games = Math.max(p.season.gp, 1)
-  const ppg = p.projections.average.ppr / 17 // projected per-game
+  const ppg = p.season.gp ? p.season.games.reduce((sum, game) => sum + game.ppr, 0) / p.season.gp : 0
   const vor = Math.max(0, ppg - REPLACEMENT_PPG[p.position])
   const ageAdj = ageMultiplier(p.position, p.age)
   // Durability nudge: reward players who stayed on the field.
