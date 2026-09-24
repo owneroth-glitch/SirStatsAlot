@@ -1,50 +1,64 @@
 import { sql } from "./db"
-import { fetchCSV, num, PLAYERS_URL, rosterUrl, statsUrl } from "./nflverse"
+import { fetchPlayers, fetchState, fetchWeekStats, headshotUrl, n, type SleeperStats } from "./sleeper"
 
-export const CURRENT_SEASON = 2026
-// Seasons kept as player "history" (older than the current season).
-export const HISTORY_SEASONS = [2025, 2024, 2023]
+// The current season is whatever Sleeper reports as live. We keep the three
+// prior seasons as each player's history/career.
+export const HISTORY_COUNT = 3
+const MAX_WEEK = 18
 
-/** Build the JSONB stat blob stored per game from an nflverse weekly row. */
-function statBlob(r: Record<string, string>) {
+/** Build the JSONB stat blob stored per game from a Sleeper weekly stat row. */
+function statBlob(s: SleeperStats) {
   return {
-    cmp: num(r.completions),
-    att: num(r.attempts),
-    passYds: num(r.passing_yards),
-    passTD: num(r.passing_tds),
-    int: num(r.passing_interceptions ?? r.interceptions),
-    sacks: num(r.sacks_suffered ?? r.sacks),
-    passAirYds: num(r.passing_air_yards),
-    passYAC: num(r.passing_yards_after_catch),
-    passFirstDowns: num(r.passing_first_downs),
-    rushAtt: num(r.carries ?? r.rushing_attempts),
-    rushYds: num(r.rushing_yards),
-    rushTD: num(r.rushing_tds),
-    rushFirstDowns: num(r.rushing_first_downs),
-    tgt: num(r.targets),
-    rec: num(r.receptions),
-    recYds: num(r.receiving_yards),
-    recTD: num(r.receiving_tds),
-    recAirYds: num(r.receiving_air_yards),
-    recYAC: num(r.receiving_yards_after_catch),
-    recFirstDowns: num(r.receiving_first_downs),
-    fumbles: num(r.sack_fumbles_lost) + num(r.rushing_fumbles_lost) + num(r.receiving_fumbles_lost),
-    twoPt:
-      num(r.passing_2pt_conversions) + num(r.rushing_2pt_conversions) + num(r.receiving_2pt_conversions),
-    fgMade: num(r.fg_made),
-    fgAtt: num(r.fg_att),
-    patMade: num(r.pat_made),
-    patAtt: num(r.pat_att),
-    fgLong: num(r.fg_long),
-    epa: num(r.passing_epa) + num(r.rushing_epa) + num(r.receiving_epa),
-    targetShare: num(r.target_share),
-    airYardsShare: num(r.air_yards_share),
-    wopr: num(r.wopr),
-    cpoe: num(r.passing_cpoe ?? r.cpoe),
+    // Passing
+    cmp: n(s.pass_cmp),
+    att: n(s.pass_att),
+    passYds: n(s.pass_yd),
+    passTD: n(s.pass_td),
+    int: n(s.pass_int),
+    sacks: n(s.pass_sack),
+    passAirYds: n(s.pass_air_yd),
+    passYAC: 0,
+    passFirstDowns: n(s.pass_fd),
+    // Rushing
+    rushAtt: n(s.rush_att),
+    rushYds: n(s.rush_yd),
+    rushTD: n(s.rush_td),
+    rushFirstDowns: n(s.rush_fd),
+    // Receiving
+    tgt: n(s.rec_tgt),
+    rec: n(s.rec),
+    recYds: n(s.rec_yd),
+    recTD: n(s.rec_td),
+    recAirYds: n(s.rec_air_yd),
+    recYAC: n(s.rec_yar), // receiving yards after the catch (recYds = recAirYds + rec_yar)
+    recFirstDowns: n(s.rec_fd),
+    // Misc
+    fumbles: n(s.fum_lost),
+    twoPt: n(s.pass_2pt) + n(s.rush_2pt) + n(s.rec_2pt),
+    // Kicking
+    fgMade: n(s.fgm),
+    fgAtt: n(s.fgm) + n(s.fgmiss),
+    patMade: n(s.xpm),
+    patAtt: n(s.xpm) + n(s.xpmiss),
+    fgLong: n(s.fgm_lng),
+    // Sleeper-native advanced
+    rushYAContact: n(s.rush_yac),
+    brokenTackles: n(s.rush_btkl),
+    offSnaps: n(s.off_snp),
+    teamSnaps: n(s.tm_off_snp),
   }
 }
 
-async function chunkedInsert(rows: unknown[][], build: (batch: unknown[][]) => { text: string; params: unknown[] }, size: number) {
+/** Whether a weekly row represents a game the player was active for. */
+function played(s: SleeperStats): boolean {
+  return n(s.gp) >= 1 || n(s.off_snp) > 0 || n(s.tm_def_snp) > 0 || n(s.pts_ppr) !== 0
+}
+
+async function chunkedInsert(
+  rows: unknown[][],
+  build: (batch: unknown[][]) => { text: string; params: unknown[] },
+  size: number,
+) {
   for (let i = 0; i < rows.length; i += size) {
     const batch = rows.slice(i, i + size)
     const { text, params } = build(batch)
@@ -55,63 +69,57 @@ async function chunkedInsert(rows: unknown[][], build: (batch: unknown[][]) => {
 export interface IngestResult {
   playerCount: number
   gameCount: number
+  currentSeason: number
   currentWeek: number
 }
 
 /**
- * Full refresh: pull the current roster universe + bios, plus current-season
- * and historical weekly stats, and upsert everything into Neon.
+ * Full refresh from Sleeper: pull the live roster universe + bios, the current
+ * season's played weeks, and the prior seasons for history, then upsert
+ * everything into Neon. Safe to run repeatedly — every row is an upsert.
  */
 export async function runIngest(): Promise<IngestResult> {
   await sql`UPDATE nfl_ingest_meta SET status = 'running' WHERE id = 1`
 
   try {
-    const [bios, roster] = await Promise.all([fetchCSV(PLAYERS_URL), fetchCSV(rosterUrl(CURRENT_SEASON))])
+    const [state, players] = await Promise.all([fetchState(), fetchPlayers()])
+    const currentSeason = state.season
+    const currentWeek = Math.max(state.week, 0)
+    const historySeasons = Array.from({ length: HISTORY_COUNT }, (_, i) => currentSeason - 1 - i)
 
-    // Bios keyed by gsis id.
-    const bioById = new Map<string, Record<string, string>>()
-    for (const b of bios) {
-      const id = b.gsis_id || b.gsis_it_id
-      if (id) bioById.set(id, b)
+    // Universe = players currently on an NFL roster or practice squad
+    // (Sleeper sets `team` to null for free agents). Exclude team DEF units.
+    const universe = new Map<string, (typeof players)[string]>()
+    for (const [pid, p] of Object.entries(players)) {
+      if (!p.team || !p.position || p.position === "DEF") continue
+      universe.set(pid, p)
     }
 
-    // Universe = players present in the roster file's latest available week.
-    const maxWeek = roster.reduce((m, r) => Math.max(m, num(r.week)), 0)
-    const latest = new Map<string, Record<string, string>>()
-    for (const r of roster) {
-      if (num(r.week) !== maxWeek) continue
-      const id = r.gsis_id
-      if (id) latest.set(id, r)
-    }
-
+    // Upsert player bios.
     const playerRows: unknown[][] = []
-    for (const [id, r] of latest) {
-      const bio = bioById.get(id) ?? {}
-      const height = num(r.height) || num(bio.height)
-      const weight = num(r.weight) || num(bio.weight)
-      const birth = r.birth_date || bio.birth_date || null
+    for (const [pid, p] of universe) {
+      const exp = typeof p.years_exp === "number" ? p.years_exp : null
       playerRows.push([
-        id,
-        r.player_name || r.full_name || bio.display_name || bio.full_name || "Unknown",
-        r.position || bio.position || "",
-        r.team || "",
-        num(r.jersey_number) || null,
-        height || null,
-        weight || null,
-        birth || null,
-        bio.college_name || bio.college || r.college || null,
-        num(r.years_exp),
-        num(bio.rookie_season) || null,
-        num(bio.draft_year ?? bio.entry_year) || null,
-        num(bio.draft_round) || null,
-        num(bio.draft_number ?? bio.draft_pick) || null,
-        r.status || r.status_description_abbr || "",
-        r.depth_chart_position || r.position || null,
-        bio.headshot || bio.headshot_url || r.headshot_url || null,
+        pid,
+        p.full_name || `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim() || "Unknown",
+        p.position || "",
+        p.team || "",
+        p.number ?? null,
+        p.height ? Number.parseInt(p.height, 10) || null : null,
+        p.weight ? Number.parseInt(p.weight, 10) || null : null,
+        p.birth_date || null,
+        p.college || null,
+        exp,
+        exp != null ? currentSeason - exp : null,
+        null, // draft_year (not provided by Sleeper)
+        null, // draft_round
+        null, // draft_pick
+        p.status || "",
+        p.depth_chart_position || p.position || null,
+        headshotUrl(pid),
       ])
     }
 
-    // Upsert players in batches.
     await chunkedInsert(
       playerRows,
       (batch) => {
@@ -138,30 +146,24 @@ export async function runIngest(): Promise<IngestResult> {
       150,
     )
 
-    // Weekly stats: current season + history. Only keep players in universe.
-    const universe = new Set(latest.keys())
+    // Weekly stats: current season (played weeks) + history seasons (full).
     let gameCount = 0
-    const allSeasons = [CURRENT_SEASON, ...HISTORY_SEASONS]
+    const seasonPlan: { season: number; weeks: number[] }[] = [
+      { season: currentSeason, weeks: range(1, Math.max(currentWeek, 0)) },
+      ...historySeasons.map((s) => ({ season: s, weeks: range(1, MAX_WEEK) })),
+    ]
 
-    for (const season of allSeasons) {
-      const stats = await fetchCSV(statsUrl(season))
-      if (stats.length === 0) continue
+    for (const { season, weeks } of seasonPlan) {
+      if (weeks.length === 0) continue
+      // Fetch a season's weeks in parallel, then insert.
+      const weekly = await Promise.all(weeks.map((w) => fetchWeekStats(season, w).then((data) => ({ w, data }))))
 
       const logRows: unknown[][] = []
-      for (const r of stats) {
-        const pid = r.player_id || r.gsis_id
-        if (!pid || !universe.has(pid)) continue
-        const week = num(r.week)
-        if (week === 0) continue
-        logRows.push([
-          pid,
-          season,
-          week,
-          r.season_type || "REG",
-          r.team || r.recent_team || "",
-          r.opponent_team || r.opponent || "",
-          JSON.stringify(statBlob(r)),
-        ])
+      for (const { w, data } of weekly) {
+        for (const [pid, s] of Object.entries(data)) {
+          if (!universe.has(pid) || !played(s)) continue
+          logRows.push([pid, season, w, "REG", universe.get(pid)!.team || "", "", JSON.stringify(statBlob(s))])
+        }
       }
       gameCount += logRows.length
 
@@ -181,23 +183,9 @@ export async function runIngest(): Promise<IngestResult> {
             params: batch.flat(),
           }
         },
-        120,
+        200,
       )
     }
-
-    // Current season/week = the most recent season that actually has REG data.
-    // nflverse only publishes a season once it is underway, so before 2026
-    // games exist this resolves to the latest completed season (e.g. 2024).
-    const latestSeasonRow = await sql`
-      SELECT season, COALESCE(MAX(week), 0) AS week
-      FROM nfl_game_logs
-      WHERE season_type = 'REG'
-      GROUP BY season
-      ORDER BY season DESC
-      LIMIT 1
-    `
-    const currentSeason = Number(latestSeasonRow[0]?.season ?? CURRENT_SEASON)
-    const currentWeek = Number(latestSeasonRow[0]?.week ?? 0)
 
     await sql`
       UPDATE nfl_ingest_meta SET
@@ -210,9 +198,15 @@ export async function runIngest(): Promise<IngestResult> {
       WHERE id = 1
     `
 
-    return { playerCount: playerRows.length, gameCount, currentWeek }
+    return { playerCount: playerRows.length, gameCount, currentSeason, currentWeek }
   } catch (err) {
     await sql`UPDATE nfl_ingest_meta SET status = 'error' WHERE id = 1`
     throw err
   }
+}
+
+function range(start: number, end: number): number[] {
+  const out: number[] = []
+  for (let i = start; i <= end; i++) out.push(i)
+  return out
 }

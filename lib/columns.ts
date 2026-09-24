@@ -102,7 +102,6 @@ export const COLUMNS: StatColumn[] = [
   count("int", "INT", "Interceptions", "passing", (p) => p.season.totals.int, hasPass),
   count("sack", "SACK", "Times sacked", "passing", (p) => p.season.totals.sacks, hasPass),
   rate("rate", "RATE", "Passer rating", "passing", (p) => p.advanced.passerRating, d1, hasPass),
-  rate("cpoe", "CPOE", "Completion % over expected", "passing", (p) => p.advanced.cpoe, d1, hasPass),
 
   // Rushing
   count("ratt", "ATT", "Rush attempts", "rushing", (p) => p.season.totals.rushAtt, hasRush),
@@ -111,6 +110,9 @@ export const COLUMNS: StatColumn[] = [
   count("rtd", "RTD", "Rushing touchdowns", "rushing", (p) => p.season.totals.rushTD, hasRush),
   count("r1d", "1D", "Rushing first downs", "rushing", (p) => p.season.totals.rushFirstDowns, hasRush),
   rate("rypg", "RY/G", "Rushing yards per game", "rushing", (p) => p.advanced.rushYdsPerGame, d1, hasRush),
+  count("yaco", "YACON", "Rushing yards after contact", "rushing", (p) => p.advanced.yardsAfterContact, hasRush),
+  rate("yacoa", "YCON/A", "Yards after contact per carry", "rushing", (p) => p.advanced.yacPerCarry, d2, hasRush),
+  count("btk", "BRKTK", "Broken/missed tackles forced (rushing)", "rushing", (p) => p.advanced.brokenTackles, hasRush),
 
   // Receiving
   count("tgt", "TGT", "Targets", "receiving", (p) => p.season.totals.tgt, hasRec),
@@ -120,18 +122,15 @@ export const COLUMNS: StatColumn[] = [
   rate("ypt", "Y/TGT", "Yards per target", "receiving", (p) => p.advanced.yardsPerTarget, d2, hasRec),
   rate("catch", "CATCH%", "Catch rate", "receiving", (p) => p.advanced.catchRate, pct, hasRec),
   count("rectd", "RTD", "Receiving touchdowns", "receiving", (p) => p.season.totals.recTD, hasRec),
-  rate("tgtsh", "TGT%", "Target share", "receiving", (p) => p.advanced.targetShare, pct, hasRec),
 
   // Advanced
+  rate("snap", "SNAP%", "Share of team offensive snaps", "advanced", (p) => p.advanced.snapShare, pct),
   rate("adot", "aDOT", "Average depth of target", "advanced", (p) => p.advanced.aDOT, d1, hasRec),
   count("yac", "YAC", "Receiving yards after catch", "advanced", (p) => p.advanced.yardsAfterCatch, hasRec),
   count("air", "AIR", "Receiving air yards", "advanced", (p) => p.advanced.airYards, hasRec),
   rate("yacr", "YAC/R", "Yards after catch per reception", "advanced", (p) => p.advanced.yacPerRec, d2, hasRec),
   rate("racr", "RACR", "Receiver air conversion ratio", "advanced", (p) => p.advanced.racr, d2, hasRec),
-  rate("ays", "AY%", "Air yards share", "advanced", (p) => p.advanced.airYardsShare, pct, hasRec),
-  rate("wopr", "WOPR", "Weighted opportunity rating", "advanced", (p) => p.advanced.wopr, d2, hasRec),
   rate("tpg", "TCH/G", "Touches per game", "advanced", (p) => p.advanced.touchesPerGame, d1),
-  rate("epg", "EPA/G", "Expected points added per game", "advanced", (p) => p.advanced.epaPerGame, d1),
 ]
 
 export function columnsFor(group: StatGroup): StatColumn[] {

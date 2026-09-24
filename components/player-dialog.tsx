@@ -261,7 +261,6 @@ function AdvancedTab({ player }: { player: Player }) {
         ["Yards / Attempt", num(a.yardsPerAtt, 2)],
         ["Adj Yards / Att", num(a.adjYardsPerAtt, 2)],
         ["Passer Rating", num(a.passerRating, 1)],
-        ["CPOE", num(a.cpoe, 1)],
         ["TD %", `${num(a.tdPct, 1)}%`],
         ["INT %", `${num(a.intPct, 1)}%`],
         ["Sack %", `${num(a.sackPct, 1)}%`],
@@ -273,6 +272,9 @@ function AdvancedTab({ player }: { player: Player }) {
       items: [
         ["Yards / Carry", num(a.yardsPerCarry, 2)],
         ["Rush Yds / Game", num(a.rushYdsPerGame, 1)],
+        ["Yards After Contact", num(a.yardsAfterContact)],
+        ["YAC / Carry", num(a.yacPerCarry, 2)],
+        ["Broken Tackles", num(a.brokenTackles)],
         ["Rush 1st Downs", num(t.rushFirstDowns)],
       ],
     },
@@ -291,15 +293,12 @@ function AdvancedTab({ player }: { player: Player }) {
       ],
     },
     {
-      title: "Usage & Value",
+      title: "Usage & Opportunity",
       show: true,
       items: [
-        ["Target Share", `${num(a.targetShare, 1)}%`],
-        ["Air Yards Share", `${num(a.airYardsShare, 1)}%`],
-        ["WOPR", num(a.wopr, 2)],
+        ["Snap Share", `${num(a.snapShare, 1)}%`],
         ["Touches / Game", num(a.touchesPerGame, 1)],
         ["Opportunities", num(a.opportunities)],
-        ["EPA / Game", num(a.epaPerGame, 1)],
       ],
     },
   ]

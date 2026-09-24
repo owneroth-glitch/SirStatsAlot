@@ -29,11 +29,10 @@ export function emptyLine(): StatLine {
     patMade: 0,
     patAtt: 0,
     fgLong: 0,
-    epa: 0,
-    targetShare: 0,
-    airYardsShare: 0,
-    wopr: 0,
-    cpoe: 0,
+    rushYAContact: 0,
+    brokenTackles: 0,
+    offSnaps: 0,
+    teamSnaps: 0,
   }
 }
 
@@ -67,12 +66,10 @@ export function addLine(a: StatLine, b: StatLine): StatLine {
     patMade: a.patMade + b.patMade,
     patAtt: a.patAtt + b.patAtt,
     fgLong: Math.max(a.fgLong, b.fgLong),
-    // Rate/context stats are accumulated then averaged by the caller.
-    epa: a.epa + b.epa,
-    targetShare: a.targetShare + b.targetShare,
-    airYardsShare: a.airYardsShare + b.airYardsShare,
-    wopr: a.wopr + b.wopr,
-    cpoe: a.cpoe + b.cpoe,
+    rushYAContact: a.rushYAContact + b.rushYAContact,
+    brokenTackles: a.brokenTackles + b.brokenTackles,
+    offSnaps: a.offSnaps + b.offSnaps,
+    teamSnaps: a.teamSnaps + b.teamSnaps,
   }
 }
 
@@ -121,7 +118,6 @@ export function passerRating(s: StatLine): number {
 export function deriveAdvanced(season: SeasonStats): Advanced {
   const t = season.totals
   const gp = Math.max(season.gp, 1)
-  const gamesWithTargets = season.games.filter((g) => g.stats.tgt > 0).length || 1
 
   const opportunities = t.rushAtt + t.tgt
   return {
@@ -132,9 +128,11 @@ export function deriveAdvanced(season: SeasonStats): Advanced {
     intPct: safe(t.int, t.att, 100),
     adjYardsPerAtt: round2(safe(t.passYds + 20 * t.passTD - 45 * t.int, t.att)),
     sackPct: safe(t.sacks, t.att + t.sacks, 100),
-    cpoe: round1(t.cpoe / gp),
     yardsPerCarry: round2(safe(t.rushYds, t.rushAtt)),
     rushYdsPerGame: round1(t.rushYds / gp),
+    yardsAfterContact: t.rushYAContact,
+    yacPerCarry: round2(safe(t.rushYAContact, t.rushAtt)),
+    brokenTackles: t.brokenTackles,
     yardsPerRec: round2(safe(t.recYds, t.rec)),
     yardsPerTarget: round2(safe(t.recYds, t.tgt)),
     catchRate: safe(t.rec, t.tgt, 100),
@@ -142,12 +140,9 @@ export function deriveAdvanced(season: SeasonStats): Advanced {
     yardsAfterCatch: t.recYAC,
     airYards: t.recAirYds,
     yacPerRec: round2(safe(t.recYAC, t.rec)),
-    racr: round2(safe(t.recYds, t.recAirYds)),
-    targetShare: round1((t.targetShare / gamesWithTargets) * 100),
-    airYardsShare: round1((t.airYardsShare / gamesWithTargets) * 100),
-    wopr: round2(t.wopr / gamesWithTargets),
+    racr: t.recAirYds > 0 ? round2(t.recYds / t.recAirYds) : 0,
+    snapShare: round1(safe(t.offSnaps, t.teamSnaps, 100)),
     touchesPerGame: round1(opportunities / gp),
     opportunities,
-    epaPerGame: round1(t.epa / gp),
   }
 }

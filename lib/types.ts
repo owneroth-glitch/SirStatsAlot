@@ -46,12 +46,11 @@ export interface StatLine {
   patMade: number
   patAtt: number
   fgLong: number
-  // Efficiency context (game-level, averaged for season)
-  epa: number
-  targetShare: number
-  airYardsShare: number
-  wopr: number
-  cpoe: number
+  // Sleeper-native usage / efficiency (summed across games)
+  rushYAContact: number
+  brokenTackles: number
+  offSnaps: number
+  teamSnaps: number
 }
 
 export interface GameLogEntry {
@@ -82,10 +81,12 @@ export interface Advanced {
   intPct: number
   adjYardsPerAtt: number
   sackPct: number
-  cpoe: number
   // Rushing
   yardsPerCarry: number
   rushYdsPerGame: number
+  yardsAfterContact: number
+  yacPerCarry: number
+  brokenTackles: number
   // Receiving
   yardsPerRec: number
   yardsPerTarget: number
@@ -96,13 +97,9 @@ export interface Advanced {
   yacPerRec: number
   racr: number
   // Usage / opportunity
-  targetShare: number
-  airYardsShare: number
-  wopr: number
+  snapShare: number
   touchesPerGame: number
   opportunities: number
-  // Value
-  epaPerGame: number
 }
 
 export interface Ratings {
