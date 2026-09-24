@@ -1,5 +1,3 @@
-export type Position = "QB" | "RB" | "WR" | "TE"
-
 export type ScoringFormat = "standard" | "half" | "ppr"
 
 export const SCORING_LABELS: Record<ScoringFormat, string> = {
@@ -8,27 +6,59 @@ export const SCORING_LABELS: Record<ScoringFormat, string> = {
   ppr: "PPR",
 }
 
-/** Raw counting stats for a game or a full season. */
+/** Offensive fantasy-relevant positions that get a value rating. */
+export const FANTASY_POSITIONS = ["QB", "RB", "WR", "TE", "K"] as const
+
+/**
+ * Raw counting stats for a single game or an aggregated season.
+ * Field names mirror what we ingest from nflverse weekly player stats.
+ */
 export interface StatLine {
+  // Passing
   cmp: number
   att: number
   passYds: number
   passTD: number
   int: number
+  sacks: number
+  passAirYds: number
+  passYAC: number
+  passFirstDowns: number
+  // Rushing
   rushAtt: number
   rushYds: number
   rushTD: number
+  rushFirstDowns: number
+  // Receiving
   tgt: number
   rec: number
   recYds: number
   recTD: number
+  recAirYds: number
+  recYAC: number
+  recFirstDowns: number
+  // Misc
   fumbles: number
+  twoPt: number
+  // Kicking
+  fgMade: number
+  fgAtt: number
+  patMade: number
+  patAtt: number
+  fgLong: number
+  // Efficiency context (game-level, averaged for season)
+  epa: number
+  targetShare: number
+  airYardsShare: number
+  wopr: number
+  cpoe: number
 }
 
 export interface GameLogEntry {
   week: number
   opp: string
   home: boolean
+  seasonType: string
   stats: StatLine
   std: number
   half: number
@@ -43,19 +73,6 @@ export interface SeasonStats {
   games: GameLogEntry[]
 }
 
-export interface SourceProjection {
-  standard: number
-  half: number
-  ppr: number
-}
-
-export interface Projections {
-  yahoo: SourceProjection
-  espn: SourceProjection
-  sleeper: SourceProjection
-  average: SourceProjection
-}
-
 export interface Advanced {
   // Passing
   completionPct: number
@@ -63,10 +80,12 @@ export interface Advanced {
   passerRating: number
   tdPct: number
   intPct: number
+  adjYardsPerAtt: number
+  sackPct: number
+  cpoe: number
   // Rushing
   yardsPerCarry: number
-  yardsAfterContactPerAtt: number
-  brokenTackles: number
+  rushYdsPerGame: number
   // Receiving
   yardsPerRec: number
   yardsPerTarget: number
@@ -74,11 +93,16 @@ export interface Advanced {
   aDOT: number
   yardsAfterCatch: number
   airYards: number
-  // Usage
+  yacPerRec: number
+  racr: number
+  // Usage / opportunity
   targetShare: number
-  snapPct: number
-  redzoneTouches: number
+  airYardsShare: number
+  wopr: number
   touchesPerGame: number
+  opportunities: number
+  // Value
+  epaPerGame: number
 }
 
 export interface Ratings {
@@ -96,17 +120,30 @@ export interface Player {
   id: string
   name: string
   team: string
-  position: Position
+  position: string
   number: number
   heightIn: number
   weightLb: number
   age: number
   college: string
   experience: number
-  byeWeek: number
+  rookieSeason: number
+  draftYear: number
+  draftRound: number
+  draftPick: number
+  rosterStatus: string
+  headshot: string
   season: SeasonStats
   history: SeasonStats[]
-  projections: Projections
   advanced: Advanced
   ratings: Ratings
+}
+
+export interface IngestMeta {
+  lastUpdated: string | null
+  currentSeason: number | null
+  currentWeek: number | null
+  playerCount: number
+  gameCount: number
+  status: string
 }

@@ -4,6 +4,7 @@ import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react"
 import type { Player, ScoringFormat } from "@/lib/types"
 import type { StatColumn } from "@/lib/columns"
 import { cn } from "@/lib/utils"
+import { rosterStatusLabel } from "@/lib/teams"
 import { PositionBadge } from "./position-badge"
 import { TradeValueBar } from "./trade-value-bar"
 
@@ -20,8 +21,6 @@ interface StatTableProps {
   perGame?: boolean
 }
 
-const IDENTITY_SORTS = new Set(["ovr", "val", "rank"])
-
 export function StatTable({
   players,
   columns,
@@ -34,6 +33,13 @@ export function StatTable({
   onToggleCompare,
   perGame = false,
 }: StatTableProps) {
+  function cellText(c: StatColumn, p: Player): string {
+    if (perGame && c.kind === "count") {
+      return c.guard(p) ? (c.value(p, format) / Math.max(1, p.season.gp)).toFixed(1) : "—"
+    }
+    return c.display(p, format)
+  }
+
   return (
     <div className="overflow-auto rounded-lg border border-border bg-card">
       <table className="w-full border-collapse text-sm">
@@ -77,7 +83,8 @@ export function StatTable({
                     <div className="min-w-0">
                       <div className="truncate font-semibold text-foreground">{p.name}</div>
                       <div className="text-xs text-muted-foreground">
-                        {p.team} · #{p.number} · Bye {p.byeWeek}
+                        {p.team}
+                        {p.number ? ` · #${p.number}` : ""} · {rosterStatusLabel(p.rosterStatus)}
                       </div>
                     </div>
                   </div>
@@ -89,7 +96,7 @@ export function StatTable({
                       ratingColor(p.ratings.overall),
                     )}
                   >
-                    {p.ratings.overall}
+                    {p.ratings.overall || "—"}
                   </span>
                 </td>
                 <td className="px-3 py-2">
@@ -105,9 +112,7 @@ export function StatTable({
                         isSorted ? "font-semibold text-foreground" : "text-foreground/80",
                       )}
                     >
-                      {perGame && !["ypc", "ypt", "yac", "epa", "cmp", "att", "tgt", "rec", "td", "int", "fum", "gp", "snap"].includes(c.key)
-                        ? formatPerGame(c.value(p, format), p.season.gp)
-                        : c.display(p, format)}
+                      {cellText(c, p)}
                     </td>
                   )
                 })}
@@ -134,10 +139,6 @@ export function StatTable({
       </table>
     </div>
   )
-}
-
-function formatPerGame(value: number, games: number) {
-  return (value / Math.max(1, games)).toFixed(1)
 }
 
 function SortableTh({
