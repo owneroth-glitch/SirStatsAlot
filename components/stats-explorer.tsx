@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { GitCompareArrows, RefreshCw, Scale, Search } from "lucide-react"
 import type { IngestMeta, Player, ScoringFormat } from "@/lib/types"
@@ -53,6 +53,11 @@ export function StatsExplorer({ players, positionOptions, teamOptions, meta }: P
   const [tradeOpen, setTradeOpen] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [refreshError, setRefreshError] = useState<string | null>(null)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const columns = columnsFor(group)
   const season = meta.currentSeason ?? 2026
@@ -124,7 +129,8 @@ export function StatsExplorer({ players, positionOptions, teamOptions, meta }: P
             <p className="text-sm text-muted-foreground">
               {season} NFL fantasy football stat sheet · every rostered &amp; practice-squad skill player ·{" "}
               {players.length} players
-              {meta.currentWeek ? ` · through Week ${meta.currentWeek}` : ""} · updated {formatUpdated(meta.lastUpdated)}
+              {meta.currentWeek ? ` · through Week ${meta.currentWeek}` : ""}
+              {mounted ? ` · updated ${formatUpdated(meta.lastUpdated)}` : ""}
             </p>
           </div>
           <div className="flex items-center gap-2">
