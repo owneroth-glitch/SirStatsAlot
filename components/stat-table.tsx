@@ -1,5 +1,6 @@
 "use client"
 
+import { memo } from "react"
 import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react"
 import type { Player, ScoringFormat } from "@/lib/types"
 import type { StatColumn } from "@/lib/columns"
@@ -33,13 +34,6 @@ export function StatTable({
   onToggleCompare,
   perGame = false,
 }: StatTableProps) {
-  function cellText(c: StatColumn, p: Player): string {
-    if (perGame && c.kind === "count") {
-      return c.guard(p) ? (c.value(p, format) / Math.max(1, p.season.gp)).toFixed(1) : "—"
-    }
-    return c.display(p, format)
-  }
-
   return (
     <div className="overflow-auto rounded-lg border border-border bg-card">
       <table className="w-full border-collapse text-sm">
@@ -62,72 +56,19 @@ export function StatTable({
             <th className="px-2 py-2.5 text-center font-semibold">CMP</th>
           </tr>
         </thead>
-        <tbody>
-          {players.map((p, i) => {
-            const inCompare = compareIds.includes(p.id)
-            return (
-              <tr
-                key={p.id}
-                onClick={() => onSelectPlayer(p.id)}
-                className={cn(
-                  "cursor-pointer border-t border-border transition-colors hover:bg-accent/60",
-                  inCompare && "bg-purple-500/5",
-                )}
-              >
-                <td className="sticky left-0 z-10 bg-card px-2 py-2 text-center text-xs font-medium text-muted-foreground">
-                  {i + 1}
-                </td>
-                <td className="sticky left-9 z-10 bg-card px-3 py-2">
-                  <div className="flex items-center gap-2.5">
-                    <PositionBadge position={p.position} />
-                    <div className="min-w-0">
-                      <div className="truncate font-semibold text-foreground">{p.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {p.team}
-                        {p.number ? ` · #${p.number}` : ""} · {rosterStatusLabel(p.rosterStatus)}
-                      </div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-2 py-2 text-center">
-                  <span
-                    className={cn(
-                      "inline-flex h-7 w-9 items-center justify-center rounded font-bold tabular-nums",
-                      ratingColor(p.ratings.overall),
-                    )}
-                  >
-                    {p.ratings.overall || "—"}
-                  </span>
-                </td>
-                <td className="px-3 py-2">
-                  <TradeValueBar value={p.ratings.tradeValue} />
-                </td>
-                {columns.map((c) => {
-                  const isSorted = c.key === sortKey
-                  return (
-                    <td
-                      key={c.key}
-                      className={cn(
-                        "px-2 py-2 text-center tabular-nums",
-                        isSorted ? "font-semibold text-foreground" : "text-foreground/80",
-                      )}
-                    >
-                      {cellText(c, p)}
-                    </td>
-                  )
-                })}
-                <td className="px-2 py-2 text-center" onClick={(e) => e.stopPropagation()}>
-                  <input
-                    type="checkbox"
-                    checked={inCompare}
-                    onChange={() => onToggleCompare(p.id)}
-                    aria-label={`Add ${p.name} to compare`}
-                    className="h-4 w-4 cursor-pointer accent-purple-800"
-                  />
-                </td>
-              </tr>
-            )
-          })}
+        <tbody className="[counter-reset:rownum]">
+          {players.map((p) => (
+            <PlayerRow
+              key={p.id}
+              player={p}
+              columns={columns}
+              format={format}
+              perGame={perGame}
+              inCompare={compareIds.includes(p.id)}
+              onSelect={onSelectPlayer}
+              onToggleCompare={onToggleCompare}
+            />
+          ))}
           {players.length === 0 && (
             <tr>
               <td colSpan={columns.length + 5} className="px-4 py-16 text-center text-muted-foreground">
@@ -140,6 +81,84 @@ export function StatTable({
     </div>
   )
 }
+
+interface PlayerRowProps {
+  player: Player
+  columns: StatColumn[]
+  format: ScoringFormat
+  perGame: boolean
+  inCompare: boolean
+  onSelect: (id: string) => void
+  onToggleCompare: (id: string) => void
+}
+
+const PlayerRow = memo(function PlayerRow({
+  player: p,
+  columns,
+  format,
+  perGame,
+  inCompare,
+  onSelect,
+  onToggleCompare,
+}: PlayerRowProps) {
+  function cellText(c: StatColumn): string {
+    if (perGame && c.kind === "count") {
+      return c.guard(p) ? (c.value(p, format) / Math.max(1, p.season.gp)).toFixed(1) : "—"
+    }
+    return c.display(p, format)
+  }
+
+  return (
+    <tr
+      onClick={() => onSelect(p.id)}
+      className={cn(
+        "cursor-pointer border-t border-border transition-colors [counter-increment:rownum] hover:bg-accent/60",
+        inCompare && "bg-purple-500/5",
+      )}
+    >
+      <td className="sticky left-0 z-10 bg-card px-2 py-2 text-center text-xs font-medium text-muted-foreground before:[content:counter(rownum)]" />
+      <td className="sticky left-9 z-10 bg-card px-3 py-2">
+        <div className="flex items-center gap-2.5">
+          <PositionBadge position={p.position} />
+          <div className="min-w-0">
+            <div className="truncate font-semibold text-foreground">{p.name}</div>
+            <div className="text-xs text-muted-foreground">
+              {p.team}
+              {p.number ? ` · #${p.number}` : ""} · {rosterStatusLabel(p.rosterStatus)}
+            </div>
+          </div>
+        </div>
+      </td>
+      <td className="px-2 py-2 text-center">
+        <span
+          className={cn(
+            "inline-flex h-7 w-9 items-center justify-center rounded font-bold tabular-nums",
+            ratingColor(p.ratings.overall),
+          )}
+        >
+          {p.ratings.overall || "—"}
+        </span>
+      </td>
+      <td className="px-3 py-2">
+        <TradeValueBar value={p.ratings.tradeValue} />
+      </td>
+      {columns.map((c) => (
+        <td key={c.key} className="px-2 py-2 text-center tabular-nums text-foreground/80">
+          {cellText(c)}
+        </td>
+      ))}
+      <td className="px-2 py-2 text-center" onClick={(e) => e.stopPropagation()}>
+        <input
+          type="checkbox"
+          checked={inCompare}
+          onChange={() => onToggleCompare(p.id)}
+          aria-label={`Add ${p.name} to compare`}
+          className="h-4 w-4 cursor-pointer accent-purple-800"
+        />
+      </td>
+    </tr>
+  )
+})
 
 function SortableTh({
   label,

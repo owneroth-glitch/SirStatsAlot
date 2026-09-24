@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { GitCompareArrows, RefreshCw, Scale, Search } from "lucide-react"
 import type { IngestMeta, Player, ScoringFormat } from "@/lib/types"
@@ -59,7 +59,7 @@ export function StatsExplorer({ players, positionOptions, teamOptions, meta }: P
     setMounted(true)
   }, [])
 
-  const columns = columnsFor(group)
+  const columns = useMemo(() => columnsFor(group), [group])
   const season = meta.currentSeason ?? 2026
 
   const filtered = useMemo(() => {
@@ -95,9 +95,9 @@ export function StatsExplorer({ players, positionOptions, teamOptions, meta }: P
     }
   }
 
-  function toggleCompare(id: string) {
+  const toggleCompare = useCallback((id: string) => {
     setCompareIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : ids.length >= 4 ? ids : [...ids, id]))
-  }
+  }, [])
 
   async function refresh() {
     setRefreshing(true)
