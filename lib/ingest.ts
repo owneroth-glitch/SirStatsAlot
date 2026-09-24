@@ -185,19 +185,25 @@ export async function runIngest(): Promise<IngestResult> {
       )
     }
 
-    // Current week = max REG week seen in current-season logs.
-    const wk = await sql`
-      SELECT COALESCE(MAX(week), 0) AS week
+    // Current season/week = the most recent season that actually has REG data.
+    // nflverse only publishes a season once it is underway, so before 2026
+    // games exist this resolves to the latest completed season (e.g. 2024).
+    const latestSeasonRow = await sql`
+      SELECT season, COALESCE(MAX(week), 0) AS week
       FROM nfl_game_logs
-      WHERE season = ${CURRENT_SEASON} AND season_type = 'REG'
+      WHERE season_type = 'REG'
+      GROUP BY season
+      ORDER BY season DESC
+      LIMIT 1
     `
-    const currentWeek = Number(wk[0]?.week ?? 0)
+    const currentSeason = Number(latestSeasonRow[0]?.season ?? CURRENT_SEASON)
+    const currentWeek = Number(latestSeasonRow[0]?.week ?? 0)
 
     await sql`
       UPDATE nfl_ingest_meta SET
         status = 'idle',
         last_updated = now(),
-        current_season = ${CURRENT_SEASON},
+        current_season = ${currentSeason},
         current_week = ${currentWeek},
         player_count = ${playerRows.length},
         game_count = ${gameCount}

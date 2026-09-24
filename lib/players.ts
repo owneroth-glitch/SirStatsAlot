@@ -101,6 +101,14 @@ export async function getStatSheet(): Promise<{
     else logsByPlayer.set(r.player_id, [r])
   }
 
+  // The "current" season shown in the stat sheet is the most recent season that
+  // actually has data. nflverse publishes a season only once it is underway, so
+  // before 2026 games exist this resolves to the latest completed season (e.g.
+  // 2024). A refresh promotes newer seasons automatically as they publish.
+  const displaySeason = logRows.length
+    ? Math.max(...logRows.map((r) => r.season))
+    : CURRENT_YEAR
+
   const players: Player[] = playerRows.map((row) => {
     const logs = logsByPlayer.get(row.gsis_id) ?? []
     const bySeason = new Map<number, LogRow[]>()
@@ -110,11 +118,11 @@ export async function getStatSheet(): Promise<{
       else bySeason.set(l.season, [l])
     }
 
-    const currentRows = bySeason.get(CURRENT_YEAR) ?? []
-    const season = buildSeason(CURRENT_YEAR, currentRows, row.team)
+    const currentRows = bySeason.get(displaySeason) ?? []
+    const season = buildSeason(displaySeason, currentRows, row.team)
 
     const history = [...bySeason.keys()]
-      .filter((y) => y !== CURRENT_YEAR)
+      .filter((y) => y !== displaySeason)
       .sort((a, b) => b - a)
       .map((y) => buildSeason(y, bySeason.get(y)!, row.team))
 
@@ -164,11 +172,15 @@ export async function getStatSheet(): Promise<{
 
   const teams = [...new Set(players.map((p) => p.team).filter(Boolean))].sort()
 
+  const displayWeek = logRows
+    .filter((r) => r.season === displaySeason && r.season_type === "REG")
+    .reduce((mx, r) => Math.max(mx, r.week), 0)
+
   const m = metaRows[0]
   const meta: IngestMeta = {
     lastUpdated: m?.last_updated ?? null,
-    currentSeason: m?.current_season ?? null,
-    currentWeek: m?.current_week ?? null,
+    currentSeason: logRows.length ? displaySeason : (m?.current_season ?? null),
+    currentWeek: logRows.length ? displayWeek : (m?.current_week ?? null),
     playerCount: Number(m?.player_count ?? players.length),
     gameCount: Number(m?.game_count ?? 0),
     status: m?.status ?? "idle",
