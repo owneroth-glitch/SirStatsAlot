@@ -122,7 +122,7 @@ export function StatTable({
                     checked={inCompare}
                     onChange={() => onToggleCompare(p.id)}
                     aria-label={`Add ${p.name} to compare`}
-                    className="h-4 w-4 cursor-pointer accent-purple-600"
+                    className="h-4 w-4 cursor-pointer accent-purple-800"
                   />
                 </td>
               </tr>
@@ -163,7 +163,7 @@ function SortableTh({
         onClick={onClick}
         className={cn(
           "mx-auto flex items-center gap-1 whitespace-nowrap transition-colors hover:text-foreground",
-          active && "text-purple-600",
+          active && "text-purple-800",
         )}
       >
         {label}

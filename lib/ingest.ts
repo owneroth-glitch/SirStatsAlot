@@ -87,11 +87,13 @@ export async function runIngest(): Promise<IngestResult> {
     const currentWeek = Math.max(state.week, 0)
     const historySeasons = Array.from({ length: HISTORY_COUNT }, (_, i) => currentSeason - 1 - i)
 
-    // Universe = players currently on an NFL roster or practice squad
-    // (Sleeper sets `team` to null for free agents). Exclude team DEF units.
+    // Universe = fantasy-relevant players currently on an NFL roster or
+    // practice squad (Sleeper sets `team` to null for free agents). Only skill
+    // positions that score fantasy points — no IDP/defense or offensive line.
+    const FANTASY_POSITIONS = new Set(["QB", "RB", "WR", "TE", "K"])
     const universe = new Map<string, (typeof players)[string]>()
     for (const [pid, p] of Object.entries(players)) {
-      if (!p.team || !p.position || p.position === "DEF") continue
+      if (!p.team || !p.position || !FANTASY_POSITIONS.has(p.position)) continue
       universe.set(pid, p)
     }
 

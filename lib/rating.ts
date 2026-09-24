@@ -129,12 +129,12 @@ export function computeRatings(players: Player[]): Player[] {
       const sd = stdev(weekly)
       const cv = ppg > 0 ? sd / ppg : 1
       const consistency = Math.max(0, Math.min(100, Math.round(100 - cv * 90)))
-      const boomRate = weekly.length
-        ? Math.round((weekly.filter((w) => w >= ppg * 1.5).length / weekly.length) * 100)
-        : 0
-      const bustRate = weekly.length
-        ? Math.round((weekly.filter((w) => w <= ppg * 0.5).length / weekly.length) * 100)
-        : 0
+        const boomRate = weekly.length
+          ? Math.round((weekly.filter((w) => w >= ppg * 1.3).length / weekly.length) * 100)
+          : 0
+        const bustRate = weekly.length
+          ? Math.round((weekly.filter((w) => w < ppg * 0.6).length / weekly.length) * 100)
+          : 0
 
       const norm = maxRaw === minRaw ? 0 : (rawValues[i] - minRaw) / (maxRaw - minRaw)
       // Concave curve (exponent < 1) lifts mid/low players toward the top,

@@ -88,7 +88,7 @@ export function CompareDialog({
                           className={cn(
                             "px-2 py-2 text-center tabular-nums",
                             values[i] === best && players.length > 1
-                              ? "font-bold text-purple-600"
+                              ? "font-bold text-purple-800"
                               : "text-foreground",
                           )}
                         >

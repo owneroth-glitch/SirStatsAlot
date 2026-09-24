@@ -76,7 +76,7 @@ export function MultiSelect({ label, options, selected, onChange }: MultiSelectP
                 <span
                   className={cn(
                     "flex h-4 w-4 shrink-0 items-center justify-center rounded border",
-                    active ? "border-purple-600 bg-purple-600 text-white" : "border-border",
+                    active ? "border-purple-800 bg-purple-800 text-white" : "border-border",
                   )}
                 >
                   {active && <Check className="h-3 w-3" />}

@@ -60,7 +60,7 @@ export function PlayerDialog({
                 className={cn(
                   "border-b-2 px-3 py-2.5 text-sm font-medium transition-colors",
                   tab === t.key
-                    ? "border-purple-600 text-foreground"
+                    ? "border-purple-800 text-foreground"
                     : "border-transparent text-muted-foreground hover:text-foreground",
                 )}
               >
@@ -84,7 +84,7 @@ export function PlayerDialog({
 function HeaderStat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
     <div className="text-center">
-      <div className={cn("text-2xl font-bold tabular-nums", accent ? "text-purple-600" : "text-foreground")}>
+      <div className={cn("text-2xl font-bold tabular-nums", accent ? "text-purple-800" : "text-foreground")}>
         {value}
       </div>
       <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
