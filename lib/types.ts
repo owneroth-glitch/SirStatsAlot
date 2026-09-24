@@ -108,9 +108,23 @@ export interface Ratings {
   tradeValue: number
   tier: number
   consistency: number
-  boomRate: number
-  bustRate: number
   ppgPPR: number
+}
+
+/**
+ * The player's upcoming game with a strength-of-matchup rating for their
+ * position. `matchupRank` is 1-based where 1 = the opponent defense that has
+ * allowed the MOST fantasy points to this position (the easiest matchup),
+ * mirroring how mainstream fantasy sites present "vs" rankings.
+ */
+export interface NextGame {
+  week: number
+  opp: string
+  home: boolean
+  kickoff: string | null
+  matchupRank: number
+  matchupCount: number
+  ptsAllowedPerGame: number
 }
 
 export interface Player {
@@ -134,6 +148,7 @@ export interface Player {
   history: SeasonStats[]
   advanced: Advanced
   ratings: Ratings
+  nextGame: NextGame | null
 }
 
 export interface IngestMeta {

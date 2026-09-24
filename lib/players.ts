@@ -48,6 +48,96 @@ function normalize(stats: Partial<StatLine>): StatLine {
   return { ...emptyLine(), ...stats }
 }
 
+interface SchedRow {
+  season: number
+  week: number
+  team: string
+  opp: string
+  home: boolean
+  kickoff: string | Date | null
+}
+
+function toIso(v: string | Date | null): string | null {
+  if (!v) return null
+  const d = v instanceof Date ? v : new Date(v)
+  return Number.isNaN(d.getTime()) ? null : d.toISOString()
+}
+
+/**
+ * Compute strength-of-matchup for each player's upcoming game.
+ *
+ * We rank every defense by the fantasy points (PPR) it has allowed per game to
+ * each position this season, then attach the player's next fixture (opponent,
+ * kickoff, home/away) plus that opponent's rank against the player's position.
+ * Rank 1 = the defense that has surrendered the MOST points to the position,
+ * i.e. the softest matchup — matching how fantasy sites present "vs" rankings.
+ */
+async function attachMatchups(players: Player[], displaySeason: number, displayWeek: number): Promise<void> {
+  let schedule: SchedRow[] = []
+  try {
+    schedule = (await sql`
+      SELECT season, week, team, opp, home, kickoff
+      FROM nfl_schedule WHERE season = ${displaySeason}
+    `) as unknown as SchedRow[]
+  } catch {
+    return // schedule not ingested yet
+  }
+  if (!schedule.length) return
+
+  const schedByTeamWeek = new Map<string, SchedRow>()
+  for (const s of schedule) schedByTeamWeek.set(`${s.week}-${s.team}`, s)
+
+  // Total PPR points each defense has allowed to each position, plus how many
+  // games that defense has played (distinct weeks it appears as an opponent).
+  const allowed = new Map<string, Map<string, number>>()
+  const defWeeks = new Map<string, Set<number>>()
+  for (const p of players) {
+    for (const g of p.season.games) {
+      // Correct the home/away flag from the schedule while we're iterating.
+      const sg = schedByTeamWeek.get(`${g.week}-${p.team}`)
+      if (sg) g.home = sg.home
+      if (!g.opp) continue
+      const posMap = allowed.get(g.opp) ?? new Map<string, number>()
+      posMap.set(p.position, (posMap.get(p.position) ?? 0) + g.ppr)
+      allowed.set(g.opp, posMap)
+      const wk = defWeeks.get(g.opp) ?? new Set<number>()
+      wk.add(g.week)
+      defWeeks.set(g.opp, wk)
+    }
+  }
+
+  // Rank defenses per position by points allowed per game (1 = softest).
+  const posRank = new Map<string, Map<string, { rank: number; count: number; ppg: number }>>()
+  for (const pos of new Set(players.map((p) => p.position))) {
+    const entries = [...allowed.entries()]
+      .filter(([, posMap]) => posMap.has(pos))
+      .map(([team, posMap]) => ({
+        team,
+        ppg: posMap.get(pos)! / (defWeeks.get(team)?.size || 1),
+      }))
+      .sort((a, b) => b.ppg - a.ppg)
+    const ranks = new Map<string, { rank: number; count: number; ppg: number }>()
+    entries.forEach((e, i) => ranks.set(e.team, { rank: i + 1, count: entries.length, ppg: e.ppg }))
+    posRank.set(pos, ranks)
+  }
+
+  const nextWeek = Math.min(displayWeek + 1, 18)
+  for (const p of players) {
+    const sg = schedByTeamWeek.get(`${nextWeek}-${p.team}`)
+    if (!sg) continue
+    const info = posRank.get(p.position)?.get(sg.opp)
+    p.nextGame = {
+      week: nextWeek,
+      opp: sg.opp,
+      home: sg.home,
+      kickoff: toIso(sg.kickoff),
+      matchupRank: info?.rank ?? 0,
+      matchupCount: info?.count ?? 0,
+      ptsAllowedPerGame: info ? Math.round(info.ppg * 10) / 10 : 0,
+    }
+  }
+}
+
 function buildSeason(year: number, rows: LogRow[], fallbackTeam: string): SeasonStats {
   const games: GameLogEntry[] = rows
     .filter((r) => r.season_type === "REG")
@@ -160,14 +250,21 @@ export async function getStatSheet(): Promise<{
         tradeValue: 0,
         tier: 0,
         consistency: 0,
-        boomRate: 0,
-        bustRate: 0,
         ppgPPR: 0,
       },
+      nextGame: null,
     }
   })
 
   computeRatings(players)
+
+  // The latest week that has played games — used to find each player's "next"
+  // fixture and to average defensive points-allowed to date.
+  const displayWeek = logRows
+    .filter((r) => r.season === displaySeason && r.season_type === "REG")
+    .reduce((mx, r) => Math.max(mx, r.week), 0)
+
+  await attachMatchups(players, displaySeason, displayWeek)
 
   const positions = [...new Set(players.map((p) => p.position).filter(Boolean))].sort((a, b) => {
     const ia = POSITION_ORDER.indexOf(a)
@@ -179,10 +276,6 @@ export async function getStatSheet(): Promise<{
   })
 
   const teams = [...new Set(players.map((p) => p.team).filter(Boolean))].sort()
-
-  const displayWeek = logRows
-    .filter((r) => r.season === displaySeason && r.season_type === "REG")
-    .reduce((mx, r) => Math.max(mx, r.week), 0)
 
   const m = metaRows[0]
   const meta: IngestMeta = {

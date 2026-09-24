@@ -32,6 +32,21 @@ export function pointsPerGame(p: Player, fmt: ScoringFormat): number {
   return p.season.gp ? round1(seasonPoints(p, fmt) / p.season.gp) : 0
 }
 
+/** Fantasy points for a single game in the selected format. */
+function gamePoints(g: Player["season"]["games"][number], fmt: ScoringFormat): number {
+  return fmt === "ppr" ? g.ppr : fmt === "half" ? g.half : g.std
+}
+/** Highest single-game fantasy output this season. */
+export function highGame(p: Player, fmt: ScoringFormat): number {
+  if (!p.season.games.length) return 0
+  return round1(Math.max(...p.season.games.map((g) => gamePoints(g, fmt))))
+}
+/** Lowest single-game output — only games the player actually played count. */
+export function lowGame(p: Player, fmt: ScoringFormat): number {
+  if (!p.season.games.length) return 0
+  return round1(Math.min(...p.season.games.map((g) => gamePoints(g, fmt))))
+}
+
 const always = () => true
 const hasPass = (p: Player) => p.season.totals.att > 0
 const hasRush = (p: Player) => p.season.totals.rushAtt > 0
@@ -88,8 +103,9 @@ export const COLUMNS: StatColumn[] = [
   rate("ppg", "PPG", "Fantasy points per game", "fantasy", (p, f) => pointsPerGame(p, f), d1),
   rate("games", "GP", "Games played", "fantasy", (p) => p.season.gp, (n) => num(n)),
   rate("cons", "CONS", "Consistency score (0-100)", "fantasy", (p) => p.ratings.consistency, (n) => String(n)),
-  rate("boom", "BOOM%", "Share of games at 150%+ of average", "fantasy", (p) => p.ratings.boomRate, pct),
-  rate("bust", "BUST%", "Share of games at 50% or less of average", "fantasy", (p) => p.ratings.bustRate, pct),
+  rate("hi", "HIGH", "Highest single-game fantasy points", "fantasy", (p, f) => highGame(p, f), d1),
+  rate("lo", "LOW", "Lowest single-game fantasy points (games played only)", "fantasy", (p, f) => lowGame(p, f), d1),
+  rate("snp", "SNAP%", "Average share of team offensive snaps", "fantasy", (p) => p.advanced.snapShare, pct),
 
   // Passing
   count("cmp", "CMP", "Completions", "passing", (p) => p.season.totals.cmp, hasPass),

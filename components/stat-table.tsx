@@ -5,7 +5,7 @@ import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react"
 import type { Player, ScoringFormat } from "@/lib/types"
 import type { StatColumn } from "@/lib/columns"
 import { cn } from "@/lib/utils"
-import { rosterStatusLabel } from "@/lib/teams"
+import { formatKickoff, ordinal } from "@/lib/format"
 import { PositionBadge } from "./position-badge"
 import { TradeValueBar } from "./trade-value-bar"
 
@@ -122,9 +122,12 @@ const PlayerRow = memo(function PlayerRow({
           <PositionBadge position={p.position} />
           <div className="min-w-0">
             <div className="truncate font-semibold text-foreground">{p.name}</div>
-            <div className="text-xs text-muted-foreground">
-              {p.team}
-              {p.number ? ` · #${p.number}` : ""} · {rosterStatusLabel(p.rosterStatus)}
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span>
+                {p.team}
+                {p.number ? ` · #${p.number}` : ""}
+              </span>
+              <Matchup player={p} />
             </div>
           </div>
         </div>
@@ -198,6 +201,44 @@ function SortableTh({
       </button>
     </th>
   )
+}
+
+/** Next-opponent chip with strength-of-matchup rank against the player's position. */
+function Matchup({ player: p }: { player: Player }) {
+  const g = p.nextGame
+  if (!g) return null
+  const rankLabel = g.matchupRank ? `${ordinal(g.matchupRank)} vs ${p.position}` : null
+  return (
+    <span className="flex items-center gap-1.5">
+      <span aria-hidden className="text-muted-foreground/40">
+        ·
+      </span>
+      <span className="font-medium text-foreground/70">
+        {g.home ? "vs" : "@"} {g.opp}
+      </span>
+      {g.kickoff && <span className="hidden text-muted-foreground/70 sm:inline">{formatKickoff(g.kickoff)}</span>}
+      {rankLabel && (
+        <span
+          title={`${g.opp} allows ${g.ptsAllowedPerGame} PPR/g to ${p.position}s (ranked ${g.matchupRank} of ${g.matchupCount})`}
+          className={cn(
+            "rounded px-1 py-px text-[10px] font-semibold tabular-nums",
+            matchupColor(g.matchupRank, g.matchupCount),
+          )}
+        >
+          {rankLabel}
+        </span>
+      )}
+    </span>
+  )
+}
+
+/** Green = soft matchup (defense allows a lot), red = tough matchup. */
+function matchupColor(rank: number, count: number): string {
+  if (!rank || !count) return "bg-muted text-muted-foreground"
+  const pctile = rank / count // small = allows most = easiest
+  if (pctile <= 1 / 3) return "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"
+  if (pctile <= 2 / 3) return "bg-amber-500/20 text-amber-700 dark:text-amber-300"
+  return "bg-red-500/20 text-red-700 dark:text-red-300"
 }
 
 function ratingColor(r: number): string {

@@ -1,5 +1,6 @@
 import { sql } from "./db"
 import { fetchPlayers, fetchState, fetchWeekStats, headshotUrl, n, type SleeperStats } from "./sleeper"
+import { fetchSchedule } from "./schedule"
 
 // The current season is whatever Sleeper reports as live. We keep the three
 // prior seasons as each player's history/career.
@@ -82,10 +83,54 @@ export async function runIngest(): Promise<IngestResult> {
   await sql`UPDATE nfl_ingest_meta SET status = 'running' WHERE id = 1`
 
   try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS nfl_schedule (
+        season   integer NOT NULL,
+        week     integer NOT NULL,
+        team     text    NOT NULL,
+        opp      text    NOT NULL,
+        home     boolean NOT NULL,
+        kickoff  timestamptz,
+        PRIMARY KEY (season, week, team)
+      )
+    `
+
     const [state, players] = await Promise.all([fetchState(), fetchPlayers()])
     const currentSeason = state.season
     const currentWeek = Math.max(state.week, 0)
     const historySeasons = Array.from({ length: HISTORY_COUNT }, (_, i) => currentSeason - 1 - i)
+
+    // Pull the current season schedule (fixtures + kickoff times). Each game
+    // becomes two rows — one per team — so lookups by team are O(1).
+    const schedule = await fetchSchedule(currentSeason)
+    const oppByTeamWeek = new Map<string, { opp: string; home: boolean; kickoff: string | null }>()
+    const scheduleRows: unknown[][] = []
+    for (const g of schedule) {
+      oppByTeamWeek.set(`${g.week}-${g.home}`, { opp: g.away, home: true, kickoff: g.kickoff })
+      oppByTeamWeek.set(`${g.week}-${g.away}`, { opp: g.home, home: false, kickoff: g.kickoff })
+      scheduleRows.push([currentSeason, g.week, g.home, g.away, true, g.kickoff])
+      scheduleRows.push([currentSeason, g.week, g.away, g.home, false, g.kickoff])
+    }
+    if (scheduleRows.length) {
+      await sql`DELETE FROM nfl_schedule WHERE season = ${currentSeason}`
+      await chunkedInsert(
+        scheduleRows,
+        (batch) => {
+          const cols = 6
+          const values = batch
+            .map((_, i) => `(${Array.from({ length: cols }, (_, c) => `$${i * cols + c + 1}`).join(",")})`)
+            .join(",")
+          return {
+            text: `INSERT INTO nfl_schedule (season, week, team, opp, home, kickoff)
+              VALUES ${values}
+              ON CONFLICT (season, week, team) DO UPDATE SET
+                opp = EXCLUDED.opp, home = EXCLUDED.home, kickoff = EXCLUDED.kickoff`,
+            params: batch.flat(),
+          }
+        },
+        200,
+      )
+    }
 
     // Universe = fantasy-relevant players currently on an NFL roster or
     // practice squad (Sleeper sets `team` to null for free agents). Only skill
@@ -164,7 +209,9 @@ export async function runIngest(): Promise<IngestResult> {
       for (const { w, data } of weekly) {
         for (const [pid, s] of Object.entries(data)) {
           if (!universe.has(pid) || !played(s)) continue
-          logRows.push([pid, season, w, "REG", universe.get(pid)!.team || "", "", JSON.stringify(statBlob(s))])
+          const team = universe.get(pid)!.team || ""
+          const opp = season === currentSeason ? (oppByTeamWeek.get(`${w}-${team}`)?.opp ?? "") : ""
+          logRows.push([pid, season, w, "REG", team, opp, JSON.stringify(statBlob(s))])
         }
       }
       gameCount += logRows.length

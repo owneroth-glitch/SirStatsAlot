@@ -24,3 +24,21 @@ export function ordinal(n: number): string {
   const v = n % 100
   return n + (s[(v - 20) % 10] || s[v] || s[0])
 }
+
+/**
+ * Format an ISO kickoff time in US Eastern (the league's reference zone) so the
+ * server and client always render identical text — avoiding hydration
+ * mismatches from the viewer's local timezone. e.g. "Sun 1:00 PM ET".
+ */
+export function formatKickoff(iso: string | null): string {
+  if (!iso) return ""
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ""
+  const parts = new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "America/New_York",
+  }).format(d)
+  return `${parts} ET`
+}

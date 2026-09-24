@@ -4,7 +4,7 @@ import type { Player, ScoringFormat } from "@/lib/types"
 import { Modal } from "./modal"
 import { PositionBadge } from "./position-badge"
 import { num } from "@/lib/format"
-import { seasonPoints, pointsPerGame } from "@/lib/columns"
+import { seasonPoints, pointsPerGame, highGame, lowGame } from "@/lib/columns"
 import { cn } from "@/lib/utils"
 
 interface Row {
@@ -20,8 +20,8 @@ const ROWS: Row[] = [
   { label: "Season Points", get: (p, f) => seasonPoints(p, f), digits: 1 },
   { label: "Points / Game", get: (p, f) => pointsPerGame(p, f), digits: 1 },
   { label: "Consistency", get: (p) => p.ratings.consistency },
-  { label: "Boom %", get: (p) => p.ratings.boomRate },
-  { label: "Bust %", get: (p) => p.ratings.bustRate, higher: false },
+  { label: "High Game", get: (p, f) => highGame(p, f), digits: 1 },
+  { label: "Low Game", get: (p, f) => lowGame(p, f), digits: 1 },
   { label: "Games Played", get: (p) => p.season.gp },
   { label: "Total TD", get: (p) => p.season.totals.passTD + p.season.totals.rushTD + p.season.totals.recTD },
   { label: "Age", get: (p) => p.age, digits: 1, higher: false },

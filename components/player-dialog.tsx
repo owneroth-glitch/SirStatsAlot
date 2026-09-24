@@ -5,7 +5,7 @@ import type { Player, ScoringFormat, SeasonStats } from "@/lib/types"
 import { Modal } from "./modal"
 import { PositionBadge } from "./position-badge"
 import { formatHeight, formatAge, num, ordinal } from "@/lib/format"
-import { seasonPoints, pointsPerGame } from "@/lib/columns"
+import { seasonPoints, pointsPerGame, highGame, lowGame } from "@/lib/columns"
 import { TEAM_NAMES, rosterStatusLabel } from "@/lib/teams"
 import { cn } from "@/lib/utils"
 
@@ -131,8 +131,8 @@ function OverviewTab({ player, format }: { player: Player; format: ScoringFormat
         <MetricCard label="Pts / Game" value={num(pointsPerGame(player, format), 1)} />
         <MetricCard label="Consistency" value={player.ratings.consistency ? `${player.ratings.consistency}/100` : "—"} />
         <MetricCard
-          label="Boom / Bust"
-          value={player.season.gp ? `${player.ratings.boomRate}% / ${player.ratings.bustRate}%` : "—"}
+          label="High / Low"
+          value={player.season.gp ? `${num(highGame(player, format), 1)} / ${num(lowGame(player, format), 1)}` : "—"}
         />
       </div>
     </div>
@@ -170,12 +170,14 @@ function GameLogTab({ season, format }: { season: SeasonStats; format: ScoringFo
             {isReceiver && <th className="px-2 py-2 text-right font-semibold">Rec</th>}
             {isReceiver && <th className="px-2 py-2 text-right font-semibold">Rec Yds</th>}
             {isReceiver && <th className="px-2 py-2 text-right font-semibold">Rec TD</th>}
+            <th className="px-2 py-2 text-right font-semibold">Snap%</th>
             <th className="px-2 py-2 text-right font-semibold">Pts</th>
           </tr>
         </thead>
         <tbody>
           {season.games.map((g) => {
             const pts = format === "ppr" ? g.ppr : format === "half" ? g.half : g.std
+            const snapPct = g.stats.teamSnaps > 0 ? Math.round((g.stats.offSnaps / g.stats.teamSnaps) * 100) : 0
             return (
               <tr key={g.week} className="border-t border-border">
                 <td className="px-2 py-1.5 text-left font-medium">{g.week}</td>
@@ -188,6 +190,9 @@ function GameLogTab({ season, format }: { season: SeasonStats; format: ScoringFo
                 {isReceiver && <td className="px-2 py-1.5 text-right tabular-nums">{g.stats.rec}</td>}
                 {isReceiver && <td className="px-2 py-1.5 text-right tabular-nums">{g.stats.recYds}</td>}
                 {isReceiver && <td className="px-2 py-1.5 text-right tabular-nums">{g.stats.recTD}</td>}
+                <td className="px-2 py-1.5 text-right tabular-nums text-muted-foreground">
+                  {snapPct ? `${snapPct}%` : "—"}
+                </td>
                 <td className="px-2 py-1.5 text-right font-semibold tabular-nums">{num(pts, 1)}</td>
               </tr>
             )
