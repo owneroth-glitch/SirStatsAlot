@@ -117,10 +117,12 @@ export function computeRatings(players: Player[]): Player[] {
 
       const norm = maxRaw === minRaw ? 0 : (rawValues[i] - minRaw) / (maxRaw - minRaw)
       // Concave curve (exponent < 1) lifts mid/low players toward the top,
-      // compressing the elite tier so studs and depth are closer together.
+      // compressing the elite tier so studs and depth stay relatively close —
+      // e.g. a top-16 RB isn't miles ahead of a third-stringer. The scale still
+      // stretches to the low 90s so the very best players read as elite.
       const curved = Math.pow(norm, 0.62)
-      const overall = Math.round(60 + curved * 26) // 60–86
-      const tradeValue = Math.round(20 + curved * 55) // 20–75
+      const overall = Math.round(55 + curved * 39) // 55–94
+      const tradeValue = Math.round(20 + curved * 59) // 20–79
 
       p.ratings = {
         overall,

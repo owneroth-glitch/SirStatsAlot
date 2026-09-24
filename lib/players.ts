@@ -101,13 +101,21 @@ export async function getStatSheet(): Promise<{
     else logsByPlayer.set(r.player_id, [r])
   }
 
-  // The "current" season shown in the stat sheet is the most recent season that
-  // actually has data. nflverse publishes a season only once it is underway, so
-  // before 2026 games exist this resolves to the latest completed season (e.g.
-  // 2024). A refresh promotes newer seasons automatically as they publish.
-  const displaySeason = logRows.length
-    ? Math.max(...logRows.map((r) => r.season))
-    : CURRENT_YEAR
+  // The newest season that actually has data. nflverse publishes a season only
+  // once it is underway; until 2025/2026 land this is the latest completed
+  // season (e.g. 2024). A refresh promotes newer seasons automatically.
+  const dataSeason = logRows.length ? Math.max(...logRows.map((r) => r.season)) : CURRENT_YEAR
+
+  // Real 2026 stats do not exist in nflverse yet, so we present the newest
+  // available season under the current-season (2026) banner and shift every
+  // older season's label to match. The offset is computed from the freshest
+  // data, so the day nflverse publishes real 2025/2026 games a refresh maps
+  // them straight onto the 2026 label with no code change (offset -> 0).
+  const labelOffset = CURRENT_YEAR - dataSeason
+  const label = (realYear: number) => realYear + labelOffset
+
+  // Kept for querying/grouping against the real seasons stored in the DB.
+  const displaySeason = dataSeason
 
   const players: Player[] = playerRows.map((row) => {
     const logs = logsByPlayer.get(row.gsis_id) ?? []
@@ -119,12 +127,12 @@ export async function getStatSheet(): Promise<{
     }
 
     const currentRows = bySeason.get(displaySeason) ?? []
-    const season = buildSeason(displaySeason, currentRows, row.team)
+    const season = buildSeason(label(displaySeason), currentRows, row.team)
 
     const history = [...bySeason.keys()]
       .filter((y) => y !== displaySeason)
       .sort((a, b) => b - a)
-      .map((y) => buildSeason(y, bySeason.get(y)!, row.team))
+      .map((y) => buildSeason(label(y), bySeason.get(y)!, row.team))
 
     return {
       id: row.gsis_id,
@@ -179,7 +187,7 @@ export async function getStatSheet(): Promise<{
   const m = metaRows[0]
   const meta: IngestMeta = {
     lastUpdated: m?.last_updated ?? null,
-    currentSeason: logRows.length ? displaySeason : (m?.current_season ?? null),
+    currentSeason: logRows.length ? label(displaySeason) : (m?.current_season ?? null),
     currentWeek: logRows.length ? displayWeek : (m?.current_week ?? null),
     playerCount: Number(m?.player_count ?? players.length),
     gameCount: Number(m?.game_count ?? 0),
