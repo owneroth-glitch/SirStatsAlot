@@ -46,7 +46,7 @@ export function MultiSelect({ label, options, selected, onChange }: MultiSelectP
       >
         <span className="text-foreground">{label}</span>
         {selected.length > 0 && (
-          <span className="flex h-5 min-w-5 items-center justify-center rounded bg-amber-400 px-1 text-xs font-semibold text-amber-950">
+          <span className="flex h-5 min-w-5 items-center justify-center rounded bg-slate-300 px-1 text-xs font-semibold text-slate-900">
             {selected.length}
           </span>
         )}

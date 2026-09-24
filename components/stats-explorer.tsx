@@ -112,7 +112,7 @@ export function StatsExplorer({ players, positionOptions, teamOptions, meta }: P
         <header className="mb-5 flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Sir<span className="text-purple-700 dark:text-purple-400">Stats</span><span className="text-amber-500">Alot</span>
+              Sir<span className="text-purple-700 dark:text-purple-400">Stats</span><span className="text-slate-400 dark:text-slate-300">Alot</span>
             </h1>
             <p className="text-sm text-muted-foreground">
               {season} NFL roster &amp; practice squad stat sheet · {players.length} players
@@ -137,7 +137,7 @@ export function StatsExplorer({ players, positionOptions, teamOptions, meta }: P
               <GitCompareArrows className="h-4 w-4" />
               Compare
               {compareIds.length > 0 && (
-                <span className="flex h-5 min-w-5 items-center justify-center rounded bg-amber-400 px-1 text-xs font-semibold text-amber-950">
+                <span className="flex h-5 min-w-5 items-center justify-center rounded bg-slate-300 px-1 text-xs font-semibold text-slate-900">
                   {compareIds.length}
                 </span>
               )}

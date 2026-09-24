@@ -47,6 +47,27 @@ const PEAK_AGE: Record<FantasyPos, number> = {
   K: 30,
 }
 
+// Position-relative overall scale. Reflects fantasy value: RB and WR are the
+// most valuable/scarce, so their studs top out highest; QB is deep in 1-QB
+// leagues, TE thinner, and K is streamable. Each position ranks internally
+// from min→max, so the best RB reads higher than the best QB or kicker.
+const OVERALL_RANGE: Record<FantasyPos, { min: number; max: number }> = {
+  RB: { min: 62, max: 99 },
+  WR: { min: 62, max: 99 },
+  QB: { min: 58, max: 91 },
+  TE: { min: 54, max: 88 },
+  K: { min: 48, max: 74 },
+}
+
+// Trade value ceiling per position, same fantasy-value ordering.
+const VALUE_RANGE: Record<FantasyPos, { min: number; max: number }> = {
+  RB: { min: 24, max: 99 },
+  WR: { min: 24, max: 99 },
+  QB: { min: 18, max: 82 },
+  TE: { min: 14, max: 74 },
+  K: { min: 8, max: 45 },
+}
+
 function ageMultiplier(pos: FantasyPos, age: number): number {
   if (!age) return 1
   const peak = PEAK_AGE[pos]
@@ -118,11 +139,14 @@ export function computeRatings(players: Player[]): Player[] {
       const norm = maxRaw === minRaw ? 0 : (rawValues[i] - minRaw) / (maxRaw - minRaw)
       // Concave curve (exponent < 1) lifts mid/low players toward the top,
       // compressing the elite tier so studs and depth stay relatively close —
-      // e.g. a top-16 RB isn't miles ahead of a third-stringer. The scale still
-      // stretches to the low 90s so the very best players read as elite.
+      // e.g. a top-16 RB isn't miles ahead of a third-stringer.
       const curved = Math.pow(norm, 0.62)
-      const overall = Math.round(55 + curved * 39) // 55–94
-      const tradeValue = Math.round(20 + curved * 59) // 20–79
+      // Position-relative scaling: each position uses its own overall/value
+      // range, so RB and WR studs read as the most valuable, then QB, TE, K.
+      const oRange = OVERALL_RANGE[pos]
+      const vRange = VALUE_RANGE[pos]
+      const overall = Math.round(oRange.min + curved * (oRange.max - oRange.min))
+      const tradeValue = Math.round(vRange.min + curved * (vRange.max - vRange.min))
 
       p.ratings = {
         overall,
