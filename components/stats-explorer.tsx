@@ -112,7 +112,7 @@ export function StatsExplorer({ players, positionOptions, teamOptions, meta }: P
         <header className="mb-5 flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Gridiron<span className="text-emerald-600">Stats</span>
+              Sir<span className="text-purple-700 dark:text-purple-400">Stats</span><span className="text-amber-500">Alot</span>
             </h1>
             <p className="text-sm text-muted-foreground">
               {season} NFL roster &amp; practice squad stat sheet · {players.length} players
@@ -137,7 +137,7 @@ export function StatsExplorer({ players, positionOptions, teamOptions, meta }: P
               <GitCompareArrows className="h-4 w-4" />
               Compare
               {compareIds.length > 0 && (
-                <span className="flex h-5 min-w-5 items-center justify-center rounded bg-emerald-600 px-1 text-xs font-semibold text-white">
+                <span className="flex h-5 min-w-5 items-center justify-center rounded bg-amber-400 px-1 text-xs font-semibold text-amber-950">
                   {compareIds.length}
                 </span>
               )}
@@ -145,7 +145,7 @@ export function StatsExplorer({ players, positionOptions, teamOptions, meta }: P
             <button
               type="button"
               onClick={() => setTradeOpen(true)}
-              className="flex h-9 items-center gap-2 rounded-md bg-emerald-600 px-3 text-sm font-medium text-white hover:bg-emerald-700"
+              className="flex h-9 items-center gap-2 rounded-md bg-purple-600 px-3 text-sm font-medium text-white hover:bg-purple-700"
             >
               <Scale className="h-4 w-4" />
               Trade Calculator
@@ -164,13 +164,13 @@ export function StatsExplorer({ players, positionOptions, teamOptions, meta }: P
             <h2 className="text-lg font-semibold text-foreground">No data loaded yet</h2>
             <p className="mt-1 max-w-md text-sm text-muted-foreground">
               Pull the current NFL rosters, practice squads, and every player&apos;s {season} game log plus prior-season
-              history from nflverse. This runs a one-time import into your database.
+              history from Sleeper. This runs a one-time import into your database.
             </p>
             <button
               type="button"
               onClick={refresh}
               disabled={refreshing}
-              className="mt-4 flex h-10 items-center gap-2 rounded-md bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
+              className="mt-4 flex h-10 items-center gap-2 rounded-md bg-purple-600 px-4 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-60"
             >
               <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
               {refreshing ? "Importing… this can take a minute" : "Load player data"}
@@ -185,7 +185,7 @@ export function StatsExplorer({ players, positionOptions, teamOptions, meta }: P
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search players…"
-                  className="h-9 w-52 rounded-md border border-border bg-card pl-8 pr-3 text-sm outline-none focus:border-emerald-500"
+                  className="h-9 w-52 rounded-md border border-border bg-card pl-8 pr-3 text-sm outline-none focus:border-purple-500"
                 />
               </div>
 
@@ -212,7 +212,7 @@ export function StatsExplorer({ players, positionOptions, teamOptions, meta }: P
                   onClick={() => setPerGame(false)}
                   className={cn(
                     "rounded px-3 py-1.5 text-sm font-medium",
-                    !perGame ? "bg-emerald-600 text-white" : "text-muted-foreground hover:text-foreground",
+                    !perGame ? "bg-purple-600 text-white" : "text-muted-foreground hover:text-foreground",
                   )}
                 >
                   Totals
@@ -222,7 +222,7 @@ export function StatsExplorer({ players, positionOptions, teamOptions, meta }: P
                   onClick={() => setPerGame(true)}
                   className={cn(
                     "rounded px-3 py-1.5 text-sm font-medium",
-                    perGame ? "bg-emerald-600 text-white" : "text-muted-foreground hover:text-foreground",
+                    perGame ? "bg-purple-600 text-white" : "text-muted-foreground hover:text-foreground",
                   )}
                 >
                   Per Game
@@ -237,7 +237,7 @@ export function StatsExplorer({ players, positionOptions, teamOptions, meta }: P
                     onClick={() => setFormat(f)}
                     className={cn(
                       "rounded px-3 py-1.5 text-sm font-medium transition-colors",
-                      format === f ? "bg-emerald-600 text-white" : "text-muted-foreground hover:text-foreground",
+                      format === f ? "bg-purple-600 text-white" : "text-muted-foreground hover:text-foreground",
                     )}
                   >
                     {SCORING_LABELS[f]}

@@ -41,12 +41,12 @@ export function MultiSelect({ label, options, selected, onChange }: MultiSelectP
         onClick={() => setOpen((o) => !o)}
         className={cn(
           "flex h-9 items-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium transition-colors hover:bg-accent",
-          selected.length > 0 && "border-emerald-500/60 bg-emerald-500/5",
+          selected.length > 0 && "border-purple-500/60 bg-purple-500/5",
         )}
       >
         <span className="text-foreground">{label}</span>
         {selected.length > 0 && (
-          <span className="flex h-5 min-w-5 items-center justify-center rounded bg-emerald-600 px-1 text-xs font-semibold text-white">
+          <span className="flex h-5 min-w-5 items-center justify-center rounded bg-amber-400 px-1 text-xs font-semibold text-amber-950">
             {selected.length}
           </span>
         )}
@@ -76,7 +76,7 @@ export function MultiSelect({ label, options, selected, onChange }: MultiSelectP
                 <span
                   className={cn(
                     "flex h-4 w-4 shrink-0 items-center justify-center rounded border",
-                    active ? "border-emerald-600 bg-emerald-600 text-white" : "border-border",
+                    active ? "border-purple-600 bg-purple-600 text-white" : "border-border",
                   )}
                 >
                   {active && <Check className="h-3 w-3" />}

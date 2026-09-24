@@ -60,7 +60,7 @@ export function PlayerDialog({
                 className={cn(
                   "border-b-2 px-3 py-2.5 text-sm font-medium transition-colors",
                   tab === t.key
-                    ? "border-emerald-600 text-foreground"
+                    ? "border-purple-600 text-foreground"
                     : "border-transparent text-muted-foreground hover:text-foreground",
                 )}
               >
@@ -84,7 +84,7 @@ export function PlayerDialog({
 function HeaderStat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
     <div className="text-center">
-      <div className={cn("text-2xl font-bold tabular-nums", accent ? "text-emerald-600" : "text-foreground")}>
+      <div className={cn("text-2xl font-bold tabular-nums", accent ? "text-purple-600" : "text-foreground")}>
         {value}
       </div>
       <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
@@ -120,7 +120,7 @@ function OverviewTab({ player, format }: { player: Player; format: ScoringFormat
         ))}
       </div>
 
-      <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-4 text-sm text-muted-foreground">
+      <div className="rounded-lg border border-purple-500/20 bg-purple-500/5 p-4 text-sm text-muted-foreground">
         {hasStats
           ? `${player.season.year} totals from ${player.season.gp} game${player.season.gp === 1 ? "" : "s"}. Use the Game Log and Advanced tabs for the full breakdown; prior seasons are under Career.`
           : `No ${player.season.year} game stats yet. Prior seasons are available under the Career tab.`}

@@ -71,7 +71,7 @@ export function StatTable({
                 onClick={() => onSelectPlayer(p.id)}
                 className={cn(
                   "cursor-pointer border-t border-border transition-colors hover:bg-accent/60",
-                  inCompare && "bg-emerald-500/5",
+                  inCompare && "bg-purple-500/5",
                 )}
               >
                 <td className="sticky left-0 z-10 bg-card px-2 py-2 text-center text-xs font-medium text-muted-foreground">
@@ -122,7 +122,7 @@ export function StatTable({
                     checked={inCompare}
                     onChange={() => onToggleCompare(p.id)}
                     aria-label={`Add ${p.name} to compare`}
-                    className="h-4 w-4 cursor-pointer accent-emerald-600"
+                    className="h-4 w-4 cursor-pointer accent-purple-600"
                   />
                 </td>
               </tr>
@@ -163,7 +163,7 @@ function SortableTh({
         onClick={onClick}
         className={cn(
           "mx-auto flex items-center gap-1 whitespace-nowrap transition-colors hover:text-foreground",
-          active && "text-emerald-600",
+          active && "text-purple-600",
         )}
       >
         {label}
